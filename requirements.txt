@@ -1,0 +1,8 @@
+httpx==0.25.2
+httpx-socks==0.8.0
+pydantic==2.6.4
+pydantic-settings==2.2.1
+pymongo==4.3.3
+python-dotenv==0.21.1
+fastapi==0.110.0
+uvicorn==0.20.0
