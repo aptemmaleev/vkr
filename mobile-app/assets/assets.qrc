@@ -1,0 +1,18 @@
+<RCC>
+    <qresource prefix="/">
+        <file>Nunito-SemiBold.ttf</file>
+        <file>images/show.svg</file>
+        <file>images/navigation/back.svg</file>
+        <file>images/navigation/bell.svg</file>
+        <file>images/navigation/house.svg</file>
+        <file>images/navigation/profile.svg</file>
+        <file>images/navigation/readings.svg</file>
+        <file>images/illustrations/house.svg</file>
+        <file>images/settings.svg</file>
+        <file>images/close.svg</file>
+        <file>images/add.svg</file>
+        <file>images/counters/cold_water.svg</file>
+        <file>images/counters/electricity.svg</file>
+        <file>images/counters/hot_water.svg</file>
+    </qresource>
+</RCC>
