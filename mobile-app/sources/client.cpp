@@ -46,19 +46,30 @@ Task* Client::registerUser(QString email, QString password, QString name, QStrin
             error = reply->errorString();
             reply->deleteLater();
             emit registerError();
+            task->setHasError(true, "Не удалось установить соединение с сервером. Проверьте подключение к интернету");
             task->setIsDone(true);
             return;
         } else {
-            if (reply->error()) {
-                error = reply->errorString();
+            QByteArray responseData = reply->readAll();
+            QJsonParseError parseError;
+            QJsonDocument responseJson = QJsonDocument::fromJson(responseData, &parseError);
+            if (parseError.error != QJsonParseError::NoError) {
+                error = "JSON parsing error: " + parseError.errorString();
                 reply->deleteLater();
-                error = reply->readAll();
-                emit registerError();
+                task->setHasError(true, "Неизвестная ошибка, попробуйте выполнить это действие позже");
                 task->setIsDone(true);
                 return;
             }
+
+            auto obj = responseJson.object();
+            if (obj.contains("error")) {
+                task->setHasError(true, obj.value("error").toString());
+                task->setIsDone(true);
+                return;
+            }
+            // loginUser(email, password);
+            task->setIsDone(true);
         }
-        loginUser(email, password);
     });
     return task;
 }
@@ -277,7 +288,8 @@ Task *Client::retrieveCountersList(QString apartmentId)
                 QString serialNumber = object.value("serial_number").toString();
                 QString apartmentId = object.value("apartment_id").toString();
                 bool hasReading = object.value("has_reading").toBool(false);
-                counters.append({id, type, name, serialNumber, apartmentId, hasReading});
+                bool active = object.value("active").toBool(false);
+                counters.append({id, type, name, serialNumber, apartmentId, hasReading, active});
             }
 
             setCountersList(counters);
@@ -324,6 +336,48 @@ Task *Client::retrieveReadingsList(QString counterId)
             }
 
             setReadingsList(readings);
+            task->setIsDone(true);
+        }
+    });
+
+    return task;
+}
+
+Task *Client::retrieveRequestsList(QString houseId)
+{
+    auto query = QUrlQuery();
+    query.addQueryItem("house_id", houseId);
+    QNetworkReply* reply = makeAuthorizedGet("api/v1/counters/requests/list", query);
+    Task* task = new Task;
+    connect(reply, &QNetworkReply::finished, [reply, this, task] () {
+        if (reply->error()) {
+            error = reply->errorString();
+            reply->deleteLater();
+            task->setIsDone(true);
+        } else {
+            QByteArray responseData = reply->readAll();
+            QJsonParseError parseError;
+            QJsonDocument responseJson = QJsonDocument::fromJson(responseData, &parseError);
+            if (parseError.error != QJsonParseError::NoError) {
+                error = "JSON parsing error: " + parseError.errorString();
+                reply->deleteLater();
+                task->setIsDone(true);
+                return;
+            }
+
+            QList<Request> requests;
+            for (auto obj : responseJson.array()) {
+                auto object = obj.toObject();
+                QString id = object.value("_id").toString();
+                QString type = object.value("type").toString();
+                QString reason = object.value("reason").toString();
+                QString counterType = object.value("counter_type").toString();
+                QString counterSerial = object.value("counter_serial_number").toString();
+                QString apartmentNumber = object.value("apartment_number").toString();
+                requests.append({id, type, reason, counterType, counterSerial, apartmentNumber});
+            }
+
+            setRequestsList(requests);
             task->setIsDone(true);
         }
     });
@@ -605,6 +659,43 @@ Task *Client::createApartment(QString houseId, QString ownerEmail, int entrance,
     return task;
 }
 
+Task *Client::deleteApartment(QString apartmentId)
+{
+    auto query = QUrlQuery();
+    query.addQueryItem("apartment_id", apartmentId);
+    QNetworkReply* reply = makeAuthorizedGet("api/v1/apartments/remove", query);
+    Task* task = new Task;
+    connect(reply, &QNetworkReply::finished, [reply, this, task] () {
+        if (reply->error()) {
+            error = reply->errorString();
+            reply->deleteLater();
+            task->setHasError(true, "Не удалось установить соединение с сервером. Проверьте подключение к интернету");
+            task->setIsDone(true);
+            return;
+        } else {
+            QByteArray responseData = reply->readAll();
+            QJsonParseError parseError;
+            QJsonDocument responseJson = QJsonDocument::fromJson(responseData, &parseError);
+            if (parseError.error != QJsonParseError::NoError) {
+                error = "JSON parsing error: " + parseError.errorString();
+                reply->deleteLater();
+                task->setHasError(true, "Неизвестная ошибка, попробуйте выполнить это действие позже");
+                task->setIsDone(true);
+                return;
+            }
+            auto obj = responseJson.object();
+            if (obj.contains("error")) {
+                task->setHasError(true, obj.value("error").toString());
+                task->setIsDone(true);
+                return;
+            }
+            task->setIsDone(true);
+        }
+    });
+
+    return task;
+}
+
 Task *Client::updateProfile(QString password, QString name, QString surname)
 {
     auto query = QUrlQuery();
@@ -644,12 +735,229 @@ Task *Client::updateProfile(QString password, QString name, QString surname)
     return task;
 }
 
+Task *Client::retrieveApartmentResidents(QString apartmentId)
+{
+    auto query = QUrlQuery();
+    query.addQueryItem("apartment_id", apartmentId);
+    QNetworkReply* reply = makeAuthorizedGet("api/v1/apartments/residents/list", query);
+    Task* task = new Task;
+    connect(reply, &QNetworkReply::finished, [reply, this, task] () {
+        if (reply->error()) {
+            error = reply->errorString();
+            reply->deleteLater();
+            task->setIsDone(true);
+        } else {
+            QByteArray responseData = reply->readAll();
+            QJsonParseError parseError;
+            QJsonDocument responseJson = QJsonDocument::fromJson(responseData, &parseError);
+            if (parseError.error != QJsonParseError::NoError) {
+                error = "JSON parsing error: " + parseError.errorString();
+                reply->deleteLater();
+                task->setIsDone(true);
+                return;
+            }
+
+            QList<User> residents;
+            for (auto obj : responseJson.array()) {
+                auto object = obj.toObject();
+                QString id = object.value("id").toString();
+                QString email = object.value("email").toString();
+                QString name = object.value("name").toString();
+                QString surname = object.value("surname").toString();
+                QString role = object.value("role").toString();
+                residents.append({id, email, name, surname, role});
+            }
+            setApartmentResidents(residents);
+            task->setIsDone(true);
+        }
+    });
+
+    return task;
+}
+
+Task *Client::changeApartmentOwner(QString apartmentId, QString ownerEmail)
+{
+    auto query = QUrlQuery();
+    query.addQueryItem("apartment_id", apartmentId);
+    query.addQueryItem("email", ownerEmail);
+    QNetworkReply* reply = makeAuthorizedGet("api/v1/apartments/residents/change_owner", query);
+    Task* task = new Task;
+    connect(reply, &QNetworkReply::finished, [reply, this, task] () {
+        if (reply->error()) {
+            error = reply->errorString();
+            reply->deleteLater();
+            task->setIsDone(true);
+        } else {
+            QByteArray responseData = reply->readAll();
+            QJsonParseError parseError;
+            QJsonDocument responseJson = QJsonDocument::fromJson(responseData, &parseError);
+            if (parseError.error != QJsonParseError::NoError) {
+                task->setHasError(true, "Неизвестная ошибка, попробуйте выполнить это действие позже");
+                task->setIsDone(true);
+                reply->deleteLater();
+                return;
+            }
+            auto obj = responseJson.object();
+            if (obj.contains("error")) {
+                task->setHasError(true, obj.value("error").toString());
+                task->setIsDone(true);
+                return;
+            }
+            task->setIsDone(true);
+        }
+    });
+
+    return task;
+}
+
+Task *Client::addResident(QString apartmentId, QString residentEmail)
+{
+    auto query = QUrlQuery();
+    query.addQueryItem("apartment_id", apartmentId);
+    query.addQueryItem("email", residentEmail);
+    QNetworkReply* reply = makeAuthorizedGet("api/v1/apartments/residents/add", query);
+    Task* task = new Task;
+    connect(reply, &QNetworkReply::finished, [reply, this, task] () {
+        if (reply->error()) {
+            error = reply->errorString();
+            reply->deleteLater();
+            task->setIsDone(true);
+        } else {
+            QByteArray responseData = reply->readAll();
+            QJsonParseError parseError;
+            QJsonDocument responseJson = QJsonDocument::fromJson(responseData, &parseError);
+            if (parseError.error != QJsonParseError::NoError) {
+                task->setHasError(true, "Неизвестная ошибка, попробуйте выполнить это действие позже");
+                task->setIsDone(true);
+                reply->deleteLater();
+                return;
+            }
+            auto obj = responseJson.object();
+            if (obj.contains("error")) {
+                task->setHasError(true, obj.value("error").toString());
+                task->setIsDone(true);
+                return;
+            }
+            task->setIsDone(true);
+        }
+    });
+
+    return task;
+}
+
+Task *Client::deleteResident(QString apartmentId, QString residentId)
+{
+    auto query = QUrlQuery();
+    query.addQueryItem("apartment_id", apartmentId);
+    query.addQueryItem("resident_id", residentId);
+    QNetworkReply* reply = makeAuthorizedGet("api/v1/apartments/residents/remove", query);
+    Task* task = new Task;
+    connect(reply, &QNetworkReply::finished, [reply, this, task] () {
+        if (reply->error()) {
+            error = reply->errorString();
+            reply->deleteLater();
+            task->setIsDone(true);
+        } else {
+            QByteArray responseData = reply->readAll();
+            QJsonParseError parseError;
+            QJsonDocument responseJson = QJsonDocument::fromJson(responseData, &parseError);
+            if (parseError.error != QJsonParseError::NoError) {
+                task->setHasError(true, "Неизвестная ошибка, попробуйте выполнить это действие позже");
+                task->setIsDone(true);
+                reply->deleteLater();
+                return;
+            }
+            auto obj = responseJson.object();
+            if (obj.contains("error")) {
+                task->setHasError(true, obj.value("error").toString());
+                task->setIsDone(true);
+                return;
+            }
+            task->setIsDone(true);
+        }
+    });
+
+    return task;
+}
+
+Task *Client::formTable(QString houseId, int year, int month)
+{
+    auto query = QUrlQuery();
+    query.addQueryItem("house_id", houseId);
+    query.addQueryItem("year", QString::number(year));
+    query.addQueryItem("month", QString::number(month));
+    QNetworkReply* reply = makeAuthorizedGet("api/v1/houses/form_table", query);
+    Task* task = new Task;
+    connect(reply, &QNetworkReply::finished, [reply, this, task] () {
+        if (reply->error()) {
+            error = reply->errorString();
+            task->setHasError(true, "Не удалось установить соединение с сервером. Проверьте подключение к интернету");
+            task->setIsDone(true);
+        } else {
+            QByteArray responseData = reply->readAll();
+            QJsonParseError parseError;
+            QJsonDocument responseJson = QJsonDocument::fromJson(responseData, &parseError);
+            if (parseError.error != QJsonParseError::NoError) {
+                task->setHasError(true, "Неизвестная ошибка, попробуйте выполнить это действие позже");
+                task->setIsDone(true);
+                reply->deleteLater();
+                return;
+            }
+            auto obj = responseJson.object();
+            if (obj.contains("error")) {
+                task->setHasError(true, obj.value("error").toString());
+                task->setIsDone(true);
+                return;
+            }
+            if (obj.contains("result")) {
+                task->setResult(obj.value("result").toString());
+                task->setIsDone(true);
+                return;
+            }
+            task->setHasError(true, "Неизвестная ошибка, попробуйте выполнить это действие позже");
+            task->setIsDone(true);
+        }
+    });
+
+    return task;
+}
+
 void Client::markEvent(QString eventId, bool read)
 {
     auto query = QUrlQuery();
     query.addQueryItem("event_id", eventId);
     query.addQueryItem("read", (read ? "true" : "false"));
     QNetworkReply* reply = makeAuthorizedGet("api/v1/events/mark", query);
+    connect(reply, &QNetworkReply::finished, [reply, this] () {
+        if (reply->error()) {
+            error = reply->errorString();
+            qDebug() << "error" << error;
+            reply->deleteLater();
+        } else {
+            QByteArray responseData = reply->readAll();
+            QJsonParseError parseError;
+            QJsonDocument responseJson = QJsonDocument::fromJson(responseData, &parseError);
+            if (parseError.error != QJsonParseError::NoError) {
+                error = "JSON parsing error: " + parseError.errorString();
+                qDebug() << "error" << error;
+                reply->deleteLater();
+                return;
+            }
+            auto obj = responseJson.object();
+            if (obj.contains("error")) {
+                qDebug() << "error";
+                return;
+            }
+        }
+    });
+}
+
+void Client::resolveRequest(QString requestId, bool positive)
+{
+    auto query = QUrlQuery();
+    query.addQueryItem("request_id", requestId);
+    query.addQueryItem("positive", (positive ? "true" : "false"));
+    QNetworkReply* reply = makeAuthorizedGet("api/v1/counters/requests/resolve", query);
     connect(reply, &QNetworkReply::finished, [reply, this] () {
         if (reply->error()) {
             error = reply->errorString();
@@ -739,6 +1047,7 @@ Task* Client::loginUser(QString email, QString password)
             settings.setValue("token", accessToken);
             settings.sync();
             token = accessToken;
+            checkLogged();
             task->setIsDone(true);
         }
     });
@@ -786,13 +1095,22 @@ Task* Client::checkLogged()
     return task;
 }
 
-void Client::logout()
+void Client::logoutUser()
 {
     setCurrentUser(User());
     token = "";
     QSettings settings;
     settings.setValue("token", "");
     settings.sync();
+    emit loggedOut();
+    setHousesList(QList<House>());
+    setApartmentsList(QList<Apartment>());
+    setHouseApartmentsList(QList<Apartment>());
+    setEventsList(QList<Event>());
+    setCountersList(QList<Counter>());
+    setReadingsList(QList<Reading>());
+    setApartmentsAddresses(QStringList());
+    apartmentIdByAddresses =  QMap<QString, QString>();
 }
 
 QString &Client::errorString()
@@ -809,6 +1127,28 @@ QNetworkReply *Client::makeAuthorizedGet(QString method, QUrlQuery query) {
     request.setRawHeader("Authorization", QString("Bearer " + token).toUtf8());
     QNetworkReply* reply = manager->get(request);
     return reply;
+}
+
+QList<Request> Client::getRequestsList() const
+{
+    return requestsList;
+}
+
+void Client::setRequestsList(const QList<Request> &newRequestsList)
+{
+    requestsList = newRequestsList;
+    emit requestsListChanged();
+}
+
+QList<User> Client::getApartmentResidents() const
+{
+    return apartmentResidents;
+}
+
+void Client::setApartmentResidents(const QList<User> &newApartmentResidents)
+{
+    apartmentResidents = newApartmentResidents;
+    emit apartmentResidentsChanged();
 }
 
 QList<Apartment> Client::getHouseApartmentsList() const
@@ -928,4 +1268,9 @@ bool Task::getHasError() const
 QString Task::getError() const
 {
     return error;
+}
+
+QString Task::getResult() const
+{
+    return result;
 }

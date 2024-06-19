@@ -20,28 +20,33 @@ Page {
     property int betweenCardsSpacing: 16
     property int cardFromBorderMargin: 12
 
+    property int i: 0
     property var data: []
     property var dynamicObjects: []
     property string pageTitle: ""
     property string pageDescription: ""
 
     function addTextField(name) {
-        var obj = textFieldComponent.createObject(controlsColumn, {fieldName: name})
+        var obj = textFieldComponent.createObject(controlsColumn, {index: root.i + 0, fieldName: name})
+        root.i = root.i + 1
         dynamicObjects.push(obj)
     }
 
     function addTextFieldFloat(name) {
-        var obj = textFieldFloatComponent.createObject(controlsColumn, {fieldName: name})
+        var obj = textFieldFloatComponent.createObject(controlsColumn, {index: root.i + 0, fieldName: name})
+        root.i = root.i + 1
         dynamicObjects.push(obj)
     }
 
     function addTextArea(name, initText, areaHeight) {
         var obj = textAreaComponent.createObject(controlsColumn, {fieldName: name, text: initText, height: areaHeight})
+        root.i = root.i + 1
         dynamicObjects.push(obj)
     }
 
     function addPassordField(name) {
-        var obj = passwordFieldComponent.createObject(controlsColumn, {fieldName: name})
+        var obj = passwordFieldComponent.createObject(controlsColumn, {index: root.i + 0, fieldName: name})
+        root.i = root.i + 1
         dynamicObjects.push(obj)
     }
 
@@ -55,6 +60,7 @@ Page {
         var obj = spacingComponent.createObject(controlsColumn, {height: 2})
         dynamicObjects.push(obj)
         obj = comboBoxComponent.createObject(controlsColumn, {fieldName: name, options: optionsList, currentIndex: i})
+        root.i = root.i + 1
         dynamicObjects.push(obj)
         obj = spacingComponent.createObject(controlsColumn, {height: 2})
         dynamicObjects.push(obj)
@@ -62,15 +68,18 @@ Page {
 
     function addButton(name, func) {
         var obj = buttonComponent.createObject(controlsColumn, {text: name, callback: [func]})
+        root.i = root.i + 1
         dynamicObjects.push(obj)
     }
 
     function addSpacing() {
         var obj = spacingComponent.createObject(controlsColumn, {})
+        root.i = root.i + 1
         dynamicObjects.push(obj)
     }
 
     function clear() {
+        root.i = 0
         root.data = []
         for (var i = 0; i < dynamicObjects.length; i++) {
             dynamicObjects[i].destroy()
@@ -153,8 +162,6 @@ Page {
         /* ControlsColumn */
         Column {
             id: controlsColumn
-            // spacing: itemsSpacing
-
             anchors {
                 top: descriptionText.bottom
                 left: parent.left
@@ -170,6 +177,7 @@ Page {
         id: textAreaComponent
 
         TextArea {
+            property bool active: true
             property string fieldName: ""
             readonly property int fieldRadius: 8
             readonly property int focusAnimationDuration: 300
@@ -184,6 +192,9 @@ Page {
             }
             function isControl() {return true}
             function getData() {return text}
+            Keys.onReturnPressed: {
+                event.accepted = true
+            }
         }
     }
 
@@ -192,6 +203,8 @@ Page {
 
         TextField {
             id: passwordTextField
+            property int index: 0
+            property bool active: true
             property string fieldName: ""
             readonly property int fieldRadius: 8
             readonly property int focusAnimationDuration: 300
@@ -207,6 +220,11 @@ Page {
             }
             function isControl() {return true}
             function getData() {return text}
+            Keys.onReturnPressed: {
+                focus = false
+                if (index === root.i - 1) return
+                root.dynamicObjects[index + 2].focus = true
+            }
             RoundButton {
                 width: height
                 flat: true
@@ -264,6 +282,7 @@ Page {
         id: textFieldComponent
 
         TextField {
+            property int index: 0
             property bool active: true
             property string fieldName: ""
             readonly property int fieldRadius: 8
@@ -276,6 +295,12 @@ Page {
                 left: parent.left
                 right: parent.right
             }
+            Keys.onReturnPressed: {
+                console.log(index)
+                focus = false
+                if (index === root.i - 1) return
+                root.dynamicObjects[index + 2].focus = true
+            }
             function isControl() {return true}
             function getData() {return text}
         }
@@ -285,6 +310,7 @@ Page {
         id: textFieldFloatComponent
 
         TextField {
+            property int index: 0
             property string previousText: ""
             property bool active: true
             property string fieldName: ""
@@ -300,6 +326,11 @@ Page {
             }
             function isControl() {return true}
             function getData() {return text}
+            Keys.onReturnPressed: {
+                focus = false
+                if (index === root.i - 1) return
+                root.dynamicObjects[index + 2].focus = true
+            }
             onTextChanged: {
                 let regex = new RegExp("^\\d+(\\.(\\d{1})?)?$")
                 if (text.match(regex) || text === "") {
@@ -315,6 +346,7 @@ Page {
         id: comboBoxComponent
 
         ComboBox {
+            property int index: 0
             property bool active: true
             property var options: []
             property string fieldName: ""
@@ -323,6 +355,11 @@ Page {
             anchors {
                 left: parent.left
                 right: parent.right
+            }
+            Keys.onReturnPressed: {
+                focus = false
+                if (i === root.i - 1) return
+                root.dynamicObjects[i + 1].focus = true
             }
             function isControl() {return true}
             function getData() {return displayText}

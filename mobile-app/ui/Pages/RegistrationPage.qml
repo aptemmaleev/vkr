@@ -14,6 +14,76 @@ Page {
     property int controlSpacing: 20
     property int contentTopMargin: 130
 
+    function getLogin() {
+        return emailField.text
+    }
+
+    function getPassord() {
+        return passwordField.text
+    }
+
+    function registerProcess() {
+        let email = emailField.text
+        let password1 = passwordField.text
+        let password2 = passwordFieldSecond.text
+        let name = nameField.text
+        let surname = surnameField.text
+
+        // Validate email
+        let regex = new RegExp("^(?=.{1,64}@)[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*@[^-][A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*(\\.[A-Za-z]{2,})$")
+        if (!email.match(regex)) {
+            dialogPopup.showError("Указан неправильный адрес электронной почты", () => {dialogPopup.close()})
+            return
+        }
+        // Validate password
+        if (password1 !== password2) {
+            dialogPopup.showError("Пароли отличаются!", () => {dialogPopup.close()})
+            return
+        }
+        else if (password1.length < 8 || password1.length > 20) {
+            dialogPopup.showError("Длина пароля должна быть от 8 до 20 символов!", () => {dialogPopup.close()})
+            return
+        }
+        else if (!password1.match(/[A-Z]/)) {
+            dialogPopup.showError("Пароль должен содержать хотя бы одну заглавную букву!", () => {dialogPopup.close()})
+            return
+        }
+        else if (!password1.match(/[a-z]/)) {
+            dialogPopup.showError("Пароль должен содержать хотя бы одну строчную букву!", () => {dialogPopup.close()})
+            return
+        }
+        else if (!password1.match(/[0-9]/)) {
+            dialogPopup.showError("Пароль должен содержать хотя бы одну цифру!", () => {dialogPopup.close()})
+            return
+        }
+        else if (!password1.match(/[^\w\s]/)) {
+            dialogPopup.showError("Пароль должен содержать хотя бы один специальный символ!", () => {dialogPopup.close()})
+            return
+        }
+        // Validate name and surname
+        if (name < 3 || name > 24) {
+            dialogPopup.showError("Имя должно быть от 3 до 24 символов", () => {dialogPopup.close()})
+            return
+        }
+        if (surname < 3 || surname > 16) {
+            dialogPopup.showError("Фамилия должна быть от 3 до 24 символов", () => {dialogPopup.close()})
+            return
+        }
+
+        var task = logic.registerUser(email, password1, name, surname)
+        loadingPage.show(task, (task) => {
+            if (task.hasError) {
+                mainStackView.pop()
+                mainStackView.push(registrationPage)
+                dialogPopup.showError(task.error, () => {dialogPopup.close()})
+            } else {
+                mainStackView.pop()
+                loginPage.setData(registrationPage.getLogin(), registrationPage.getPassord())
+                mainStackView.push(loginPage)
+            }
+        })
+    }
+
     /* Background */
     background: Rectangle {
         color: themeSettings.backgroundColor
@@ -52,6 +122,10 @@ Page {
                 right: parent.right
                 topMargin: betweenElementsMargin
             }
+            Keys.onReturnPressed: {
+                focus = false
+                passwordField.focus = true
+            }
         }
 
         /* Password field */
@@ -64,6 +138,10 @@ Page {
                 left: parent.left
                 right: parent.right
                 topMargin: controlSpacing
+            }
+            Keys.onReturnPressed: {
+                focus = false
+                passwordFieldSecond.focus = true
             }
         }
 
@@ -78,6 +156,10 @@ Page {
                 right: parent.right
                 topMargin: controlSpacing
             }
+            Keys.onReturnPressed: {
+                focus = false
+                nameField.focus = true
+            }
         }
 
         /* Login field */
@@ -91,6 +173,10 @@ Page {
                 right: parent.right
                 topMargin: controlSpacing
             }
+            Keys.onReturnPressed: {
+                focus = false
+                surnameField.focus = true
+            }
         }
 
         /* Login field */
@@ -103,6 +189,14 @@ Page {
                 left: parent.left
                 right: parent.right
                 topMargin: controlSpacing
+            }
+            Keys.onReturnPressed: {
+                emailField.focus = false
+                passwordField.focus = false
+                passwordFieldSecond.focus = false
+                nameField.focus = false
+                surnameField.focus = false
+                registerProcess()
             }
         }
 
@@ -118,54 +212,12 @@ Page {
             }
 
             onClicked: {
-                let email = emailField.text
-                let password1 = emailField.text
-                let password2 = emailField.text
-                let name = emailField.text
-                let surname = emailField.text
-
-                // Validate email
-                let regex = new RegExp("^(?=.{1,64}@)[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*@[^-][A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*(\\.[A-Za-z]{2,})$")
-                if (!email.match(regex)) {
-                    dialogPopup.showError("Указан неправильный адрес электронной почты", () => {dialogPopup.close()})
-                    return
-                }
-                // Validate password
-                if (password1 !== password2) {
-                    dialogPopup.showError("Пароли отличаются!", () => {dialogPopup.close()})
-                    return
-                }
-                else if (password1.length < 8 || password1.length > 20) {
-                    dialogPopup.showError("Длина пароля должна быть от 8 до 20 символов!", () => {dialogPopup.close()})
-                    return
-                }
-                else if (!password1.match(/[A-Z]/)) {
-                    dialogPopup.showError("Пароль должен содержать хотя бы одну заглавную букву!", () => {dialogPopup.close()})
-                    return
-                }
-                else if (!password1.match(/[a-z]/)) {
-                    dialogPopup.showError("Пароль должен содержать хотя бы одну строчную букву!", () => {dialogPopup.close()})
-                    return
-                }
-                else if (!password1.match(/[0-9]/)) {
-                    dialogPopup.showError("Пароль должен содержать хотя бы одну цифру!", () => {dialogPopup.close()})
-                    return
-                }
-                else if (!password1.match(/[^\w\s]/)) {
-                    dialogPopup.showError("Пароль должен содержать хотя бы один специальный символ!", () => {dialogPopup.close()})
-                    return
-                }
-                // Validate name and surname
-                if (name < 3 || name > 24) {
-                    dialogPopup.showError("Имя должно быть от 3 до 24 символов", () => {dialogPopup.close()})
-                    return
-                }
-                if (surname < 3 || surname > 16) {
-                    dialogPopup.showError("Фамилия должна быть от 3 до 24 символов", () => {dialogPopup.close()})
-                    return
-                }
-
-                logic.registerUser(email, password1, name, surname)
+                emailField.focus = false
+                passwordField.focus = false
+                passwordFieldSecond.focus = false
+                nameField.focus = false
+                surnameField.focus = false
+                registerProcess()
             }
         }
     }
@@ -200,6 +252,11 @@ Page {
         id: notRegisteredMouseArea
         anchors.fill: notRegisteredButton
         onClicked: {
+            emailField.focus = false
+            passwordField.focus = false
+            passwordFieldSecond.focus = false
+            nameField.focus = false
+            surnameField.focus = false
             mainStackView.replace(loginPage)
         }
     }

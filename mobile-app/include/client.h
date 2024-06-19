@@ -18,6 +18,7 @@ class Task : public QObject {
     Q_PROPERTY(bool isDone READ getIsDone WRITE setIsDone NOTIFY done FINAL)
     Q_PROPERTY(bool hasError READ getHasError CONSTANT FINAL)
     Q_PROPERTY(QString error READ getError CONSTANT FINAL)
+    Q_PROPERTY(QString result READ getResult CONSTANT FINAL)
 public:
     bool getIsDone() const {
         return isDone;
@@ -30,14 +31,20 @@ public:
         hasError = newHasError;
         error = newError;
     }
+    void setResult(QString newResult) {
+        result = newResult;
+    }
     bool getHasError() const;
     QString getError() const;
+
+    QString getResult() const;
 
 signals:
     void done();
 
 private:
     bool hasError = false;
+    QString result = "";
     QString error = "";
     bool isDone = false;
 };
@@ -162,6 +169,7 @@ struct Counter
     Q_PROPERTY(QString serialNumber MEMBER serialNumber)
     Q_PROPERTY(QString apartmentId MEMBER apartmentId)
     Q_PROPERTY(bool hasReading MEMBER hasReading)
+    Q_PROPERTY(bool active MEMBER active)
 
 public:
     QString id;
@@ -170,6 +178,25 @@ public:
     QString serialNumber;
     QString apartmentId;
     bool hasReading;
+    bool active;
+};
+
+struct Request {
+    Q_GADGET
+    Q_PROPERTY(QString id MEMBER id)
+    Q_PROPERTY(QString type MEMBER type)
+    Q_PROPERTY(QString reason MEMBER reason)
+    Q_PROPERTY(QString counterType MEMBER counterType)
+    Q_PROPERTY(QString counterSerial MEMBER counterSerial)
+    Q_PROPERTY(QString apartmentNumber MEMBER apartmentNumber)
+
+public:
+    QString id;
+    QString type;
+    QString reason;
+    QString counterType;
+    QString counterSerial;
+    QString apartmentNumber;
 };
 
 /* Declare types */
@@ -195,6 +222,8 @@ class Client : public QObject
     Q_PROPERTY(QList<Counter> countersList READ getCountersList WRITE setCountersList NOTIFY countersListChanged FINAL)
     Q_PROPERTY(QList<Reading> readingsList READ getReadingsList WRITE setReadingsList NOTIFY readingsListChanged FINAL)
     Q_PROPERTY(QList<Apartment> houseApartmentsList READ getHouseApartmentsList WRITE setHouseApartmentsList NOTIFY houseApartmentsListChanged FINAL)
+    Q_PROPERTY(QList<User> apartmentResidents READ getApartmentResidents WRITE setApartmentResidents NOTIFY apartmentResidentsChanged FINAL)
+    Q_PROPERTY(QList<Request> requestsList READ getRequestsList WRITE setRequestsList NOTIFY requestsListChanged FINAL)
 
 public:
     explicit Client(QObject *parent = nullptr);
@@ -225,8 +254,14 @@ public:
     QList<Apartment> getHouseApartmentsList() const;
     void setHouseApartmentsList(const QList<Apartment> &newHouseApartmentsList);
 
+    QList<User> getApartmentResidents() const;
+    void setApartmentResidents(const QList<User> &newApartmentResidents);
+
+    QList<Request> getRequestsList() const;
+    void setRequestsList(const QList<Request> &newRequestsList);
+
 public slots:
-    void logout();
+    void logoutUser();
     Task* checkLogged();
     Task* loginUser(QString email, QString password);
     Task* registerUser(QString email, QString password, QString name, QString surname);
@@ -236,6 +271,7 @@ public slots:
     Task* retrieveEventsList();
     Task* retrieveCountersList(QString apartmentId);
     Task* retrieveReadingsList(QString counterId);
+    Task* retrieveRequestsList(QString houseId);
 
     // Task* retrieveUser();
     Task* createCounter(QString apartmentId, QString serialNumber, QString type, QString name, float value);
@@ -245,13 +281,15 @@ public slots:
     Task* changeHouse(QString houseId, QString info = "", int startReadingDay = 0, int endReadingDay = 0);
     Task* createEvent(QString houseId, QString type, QString title, QString details);
     Task* createApartment(QString houseId, QString ownerEmail, int entrance, int number, int floor);
+    Task* deleteApartment(QString apartmentId);
     Task* updateProfile(QString password = "", QString name = "", QString surname = "");
+    Task* retrieveApartmentResidents(QString apartmentId);
+    Task* changeApartmentOwner(QString apartmentId, QString ownerEmail);
+    Task* addResident(QString apartmentId, QString residentEmail);
+    Task* deleteResident(QString apartmentId, QString residentId);
+    Task* formTable(QString houseId, int year, int month);
     void markEvent(QString eventId, bool read);
-
-    // Task* createApartment();
-    // Task* changeHouseInfo();
-    // Task* changePassword();
-    // Task* createEvent();
+    void resolveRequest(QString requestId, bool positive);
 
     Apartment getApartmentById(const QString& id);
     House getHouseById(const QString& houseId);
@@ -268,6 +306,7 @@ signals:
     void registerError();
     void loginError();
     void loggedIn();
+    void loggedOut();
 
     void currentUserChanged();
     void housesListChanged();
@@ -280,6 +319,10 @@ signals:
 
     void houseApartmentsListChanged();
 
+    void apartmentResidentsChanged();
+
+    void requestsListChanged();
+
 private:
     bool isLogged;
 
@@ -287,12 +330,14 @@ private:
     QString token = "";
     QString hostname = "https://vkr123.devoidai.com/";
 
+    QList<Request> requestsList;
     QList<House> housesList;
     QList<Apartment> apartmentsList;
     QList<Apartment> houseApartmentsList;
     QList<Event> eventsList;
     QList<Counter> countersList;
     QList<Reading> readingsList;
+    QList<User> apartmentResidents;
     QStringList apartmentsAddresses;
     QMap<QString, QString> apartmentIdByAddresses;
 

@@ -17,8 +17,13 @@ ApplicationWindow {
         id: logic
 
         onLoginError: console.log("Login error!")
-        onLoggedIn: logic.retrieveHousesList()
-        onHousesListChanged: logic.retrieveEventsList()
+        onLoggedIn: {
+            logic.retrieveHousesList()
+        }
+        onHousesListChanged: {
+            logic.retrieveApartmentList()
+            logic.retrieveEventsList()
+        }
 
         Component.onCompleted: {
             if (!logic.hasToken) return
@@ -209,6 +214,16 @@ ApplicationWindow {
     /* ManageApartmentPage */
     ManageApartmentPage {
         id: manageApartmentPage
+        visible: false
+    }
+
+    ExportTablePage {
+        id: exportTablePage
+        visible: false
+    }
+
+    ManageRequestsPage {
+        id: manageRequestsPage
         visible: false
     }
 

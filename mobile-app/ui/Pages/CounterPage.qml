@@ -68,7 +68,7 @@ Page {
                 readingsListModel.append({
                                              "date": new Date(reading.createdAt).toLocaleDateString(Qt.locale("ru_RU")).split(", ")[1],
                                              "value": reading.value.toFixed(1) + " " + typeToUnit[counter.type],
-                                             "author": "Александр Л.",
+                                             "author": logic.currentUser.name + " " + logic.currentUser.surname[0] + ".",
                                              "reading": reading})
             }
 
@@ -175,6 +175,8 @@ Page {
                 model: readingsListModel
 
                 delegate: Card {
+                    backgroundBorderWidth: 1
+                    backgroundBorderColor: themeSettings.cardBlueColor
                     height: cardFromBorderMargin * 2 + cardTitleText.height + cardValueText.height + cardAuthorText.height
                     anchors {
                         left: parent.left

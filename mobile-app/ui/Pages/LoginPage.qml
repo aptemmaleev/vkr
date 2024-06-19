@@ -11,6 +11,36 @@ Page {
     property int controlHeight: 50
     property int fromBorderMargin: 45
 
+    function setData(login, password) {
+        loginField.text = login
+        passwordField.text = password
+    }
+
+    function loginProcess() {
+        // Get data
+        let email = loginField.text
+        let password = passwordField.text
+        // Validate data
+        let regex = new RegExp("^(?=.{1,64}@)[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*@[^-][A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*(\\.[A-Za-z]{2,})$")
+        if (!email.match(regex)) {
+            dialogPopup.showError("Указан неправильный адрес электронной почты", () => {dialogPopup.close()})
+            return
+        }
+
+        mainSwipeView.setCurrentIndex(1)
+        var task = logic.loginUser(loginField.text, passwordField.text)
+        loadingPage.show(task, (task) => {
+            if (task.hasError) {
+                mainStackView.clear()
+                mainStackView.push(loginPage)
+                dialogPopup.showError(task.error, () => {dialogPopup.close()})
+            } else {
+                mainStackView.clear()
+                mainStackView.push(mainSwipeView)
+            }
+        })
+    }
+
     /* Background */
     background: Rectangle {
         color: themeSettings.backgroundColor
@@ -41,6 +71,9 @@ Page {
             leftMargin: fromBorderMargin
             rightMargin: fromBorderMargin
         }
+        Keys.onReturnPressed: {
+            passwordField.focus = true
+        }
     }
 
     /* Password field */
@@ -56,6 +89,11 @@ Page {
             topMargin: 20
             leftMargin: fromBorderMargin
             rightMargin: fromBorderMargin
+        }
+        Keys.onReturnPressed: {
+            passwordField.focus = false
+            loginField.focus = false
+            loginProcess()
         }
     }
 
@@ -86,28 +124,9 @@ Page {
         }
 
         onClicked: {
-            // Get data
-            let email = loginField.text
-            let password = passwordField.text
-            // Validate data
-            let regex = new RegExp("^(?=.{1,64}@)[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*@[^-][A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*(\\.[A-Za-z]{2,})$")
-            if (!email.match(regex)) {
-                dialogPopup.showError("Указан неправильный адрес электронной почты", () => {dialogPopup.close()})
-                return
-            }
-
-            mainSwipeView.setCurrentIndex(1)
-            var task = logic.loginUser(loginField.text, passwordField.text)
-            loadingPage.show(task, (task) => {
-                if (task.hasError) {
-                    mainStackView.clear()
-                    mainStackView.push(loginPage)
-                    dialogPopup.showError(task.error, () => {dialogPopup.close()})
-                } else {
-                    mainStackView.clear()
-                    mainStackView.push(mainSwipeView)
-                }
-            })
+            passwordField.focus = false
+            loginField.focus = false
+            loginProcess()
         }
     }
 
@@ -141,6 +160,8 @@ Page {
         anchors.fill: notRegisteredButton
 
         onClicked: {
+            passwordField.focus = false
+            loginField.focus = false
             mainStackView.replace(registrationPage)
         }
     }

@@ -187,6 +187,8 @@ Page {
         }
 
         delegate: Card {
+            backgroundBorderWidth: 1
+            backgroundBorderColor: themeSettings.cardBlueColor
             height: 24 + apartmentTitleText.height + standardMargin - 4 + manageButton.height
             anchors {
                 left: parent === null ? undefined : parent.left
@@ -222,6 +224,7 @@ Page {
                 onClicked: {
                     manageApartmentPage.house = house
                     manageApartmentPage.apartment = model.apartment
+                    manageApartmentPage.update()
                     housesStackView.push(manageApartmentPage)
                 }
             }

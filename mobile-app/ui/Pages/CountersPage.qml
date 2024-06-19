@@ -155,8 +155,13 @@ Page {
     Flickable {
         id: contentListView
         clip: true
+        height: contentHeight > parent.height ? parent.height : contentHeight
         boundsBehavior: Flickable.StopAtBounds
-        anchors.fill: parent
+        anchors {
+            top: parent.top
+            left: parent.left
+            right: parent.right
+        }
         contentHeight: titleTopMargin + title.height + addressFilterText.height + countersColumn.height + standardMargin * 2
 
         /* Page Title */
@@ -174,6 +179,7 @@ Page {
         /* Settings Button */
         IconButton {
             id: addButton
+            enabled: logic.apartmentsAddresses.length !== 0
             buttonSize: 30
             imageColor: themeSettings.primaryColor
             imageSource: "qrc:/images/add.svg"
@@ -183,6 +189,12 @@ Page {
                 verticalCenter: title.verticalCenter
             }
             onClicked: {
+                let apartment = logic.getApartmentByAddress(addressFilterText.text)
+                if (apartment.ownerId !== logic.currentUser.id) {
+                    dialogPopup.showError("Добавлять счетчки может только владелец", () => {dialogPopup.close()})
+                    return
+                }
+
                 dynamicFormPage.setActive(false)
                 dynamicFormPage.clear()
                 dynamicFormPage.pageTitle = "Добавление счетчика"
@@ -253,6 +265,7 @@ Page {
 
             MouseArea {
                 id: addressFilterMouseArea
+                enabled: logic.apartmentsAddresses.length !== 0
                 anchors.fill: parent
                 onClicked: apartmentsDrawer.open()
             }
@@ -279,7 +292,7 @@ Page {
                 delegate: Card {
                     backgroundBorderColor: overdue ? themeSettings.cardPinkColor : notStarted ? themeSettings.cardBlueColor : themeSettings.warningColor
                     backgroundBorderWidth: model.hasReading ? 0 : 1
-                    opacity: cardMouseArea.pressed ? 0.9 : 1
+                    opacity: model.counter.active ? (cardMouseArea.pressed ? 0.9 : 1) : 0.5
 
                     height: cardFromBorderMargin * 2 + (model.hasReading ? 0 : cardHeader.height + (standardMargin - 4)) + cardTitleText.height + cardAddressText.height
                     anchors {
@@ -378,6 +391,7 @@ Page {
                         id: cardMouseArea
                         anchors.fill: parent
                         onClicked: {
+                            if (!model.counter.active) return
                             counterPage.house = root.house
                             counterPage.counter = model.counter
                             counterPage.apartmentAddress = addressFilterText.text
@@ -385,9 +399,11 @@ Page {
                         }
 
                         onPressAndHold: {
+                            if (!model.counter.active) return
                             dynamicFormPage.clear()
                             dynamicFormPage.pageTitle = "Удаление счетчика"
                             dynamicFormPage.pageDescription = "Вы действительно хотите удалить счетчик?"
+                            dynamicFormPage.addTextArea("Причина удаления", "", 250)
                             dynamicFormPage.addSpacing()
                             dynamicFormPage.addSpacing()
                             var counterId = model.counter.id
@@ -469,6 +485,28 @@ Page {
                 topMargin: 40
                 leftMargin: fromBorderMargin
                 rightMargin: fromBorderMargin
+            }
+        }
+    }
+
+    Item {
+        anchors {
+            top: contentListView.bottom
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+            margins: fromBorderMargin
+        }
+
+        RegularText {
+            id: placeholderText
+            opacity: 0.5
+            visible: countersListModel.count === 0
+            text: logic.apartmentsAddresses.length === 0 ? "Присоединитесь к квартире, чтобы управлять счётчиками" : "Добавьте счётчики с помощью кнопки + справа вверху"
+            anchors {
+                left: parent.left
+                right: parent.right
+                verticalCenter: parent.verticalCenter
             }
         }
     }

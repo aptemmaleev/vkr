@@ -64,14 +64,22 @@ Page {
             let event = logic.eventsList[i]
             let type = event.type === "news" ? "Новости" : "Уведомления"
             if (!checkedTypes.includes(type)) continue
-            if (!checkedTypes.includes("Непрочитанное") && event.readed) continue
+            if (checkedTypes.includes("Непрочитанное") && event.readed) continue
             let color = event.type === "news" ? themeSettings.cardBlueColor : themeSettings.cardYellowColor
             let house = logic.getHouseById(event.houseId)
             if (!event.readed) {
                 logic.markEvent(event.id, true)
             }
             if (!checkedAddresses.includes(house.address)) continue
-            eventsListModel.append({"type": type, "color": color, "readed": event.readed, "date": new Date(event.createdAt).toLocaleDateString(Qt.locale("ru_RU")).split(", ")[1], "title": event.title, "address": house.address})
+            eventsListModel.append({
+                "type": type,
+                "color": color,
+                "readed": event.readed,
+                "date": new Date(event.createdAt).toLocaleDateString(Qt.locale("ru_RU")).split(", ")[1],
+                "title": event.title,
+                "address": house.address,
+                "details": event.details
+            })
         }
         console.log("EventsListModel updated!")
     }
@@ -218,7 +226,9 @@ Page {
         }
 
         delegate: Card {
-            height: 16 * 2 + cardHeader.height + cardTitleText.height + cardAddressText.height + standardMargin * 2
+            backgroundBorderWidth: 1
+            backgroundBorderColor: model.color
+            height: 12 * 2 + cardHeader.height + cardTitleText.height + cardAddressText.height + cardDetailsText.height
             anchors {
                 left: parent === null ? undefined : parent.left
                 right: parent === null ? undefined : parent.right
@@ -291,21 +301,36 @@ Page {
                     top: cardHeader.bottom
                     left: parent.left
                     right: parent.right
-                    margins: 12
-                    topMargin: standardMargin
+                    leftMargin: 12
+                    rightMargin: 12
+                    topMargin: 4
+                }
+            }
+
+            RegularText {
+                id: cardDetailsText
+                text: model.details
+                horizontalAlignment: Text.AlignJustify
+                anchors {
+                    top: cardTitleText.bottom
+                    left: parent.left
+                    right: parent.right
+                    leftMargin: 12
+                    rightMargin: 12
                 }
             }
 
             RegularText {
                 id: cardAddressText
                 text: model.address
+                opacity: 0.5
                 horizontalAlignment: Text.AlignJustify
                 anchors {
-                    top: cardTitleText.bottom
+                    top: cardDetailsText.bottom
                     left: parent.left
                     right: parent.right
-                    margins: 12
-                    topMargin: standardMargin - 4
+                    leftMargin: 12
+                    rightMargin: 12
                 }
             }
         }
@@ -379,6 +404,28 @@ Page {
                 topMargin: standardMargin
                 leftMargin: fromBorderMargin
                 rightMargin: fromBorderMargin
+            }
+        }
+    }
+
+    Item {
+        anchors {
+            top: filtersListView.bottom
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+            margins: fromBorderMargin
+        }
+
+        RegularText {
+            id: placeholderText
+            opacity: 0.5
+            visible: eventsListModel.count === 0
+            text: "Новых уведомлений нет"
+            anchors {
+                left: parent.left
+                right: parent.right
+                verticalCenter: parent.verticalCenter
             }
         }
     }

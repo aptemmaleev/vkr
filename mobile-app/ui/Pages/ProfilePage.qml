@@ -221,7 +221,7 @@ Page {
         anchors.fill: logoutButton
 
         onClicked: {
-            logic.logout()
+            logic.logoutUser()
             mainStackView.clear()
             mainStackView.push(loginPage)
         }

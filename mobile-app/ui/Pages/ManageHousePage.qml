@@ -267,6 +267,11 @@ Page {
                     left: parent.left
                     right: parent.right
                 }
+
+                onClicked: {
+                    exportTablePage.house = house
+                    housesStackView.push(exportTablePage)
+                }
             }
 
             RectangleButton {
@@ -282,6 +287,22 @@ Page {
                     manageApartmentsPage.house = house
                     manageApartmentsPage.update()
                     housesStackView.push(manageApartmentsPage)
+                }
+            }
+
+            RectangleButton {
+                text: "Заявки по счетчикам"
+                height: controlHeight
+
+                anchors {
+                    left: parent.left
+                    right: parent.right
+                }
+
+                onClicked: {
+                    manageRequestsPage.house = house
+                    manageRequestsPage.update()
+                    housesStackView.push(manageRequestsPage)
                 }
             }
         }
