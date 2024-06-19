@@ -8,6 +8,8 @@ class House:
     _id: ObjectId
     address: str
     info: str
+    start_readings_day: int
+    end_readings_day: int
     managers: List[ObjectId]
 
     def __init__(
@@ -15,17 +17,23 @@ class House:
         address: str,
         info: str,
         managers: List[ObjectId],
+        start_readings_day: int = 1,
+        end_readings_day: int = 30,
         _id: ObjectId = None
     ) -> None:
         self._id = _id
         self.address = address
         self.info = info
+        self.start_readings_day = start_readings_day
+        self.end_readings_day = end_readings_day
         self.managers = managers
 
     def __dict__(self):
         return {
             'address': self.address,
             'info': self.info,
+            'start_readings_day': self.start_readings_day,
+            'end_readings_day': self.end_readings_day,
             'managers': self.managers
         }
     
@@ -34,6 +42,8 @@ class House:
             'id': str(self._id),
             'address': self.address,
             'info': self.info,
+            'start_readings_day': self.start_readings_day,
+            'end_readings_day': self.end_readings_day,
             'managers': list(map(str, self.managers))
         }
     

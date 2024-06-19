@@ -10,7 +10,7 @@ class Event:
     type: str
     title: str
     details: str
-    read: bool
+    readed: bool
     manager_id: ObjectId
     created_at: datetime
     house_id: ObjectId | None
@@ -21,7 +21,7 @@ class Event:
         type: str,
         title: str,
         details: str,
-        read: bool = False,
+        readed: bool = False,
         manager_id: ObjectId = None,
         created_at: datetime = datetime.now(),
         house_id: ObjectId | None = None,
@@ -31,7 +31,7 @@ class Event:
         self.user_id = user_id
         self.title = title
         self.details = details
-        self.read = read
+        self.readed = readed
         self.manager_id = manager_id
         self.created_at = created_at
         self.house_id = house_id
@@ -43,7 +43,7 @@ class Event:
             'type': self.type,
             'title': self.title,
             'details': self.details,
-            'read': self.read,
+            'readed': self.readed,
             'manager_id': self.manager_id,
             'created_at': self.created_at,
             'house_id': self.house_id
@@ -56,7 +56,7 @@ class Event:
             'user_id': str(self.user_id),
             'title': self.title,
             'details': self.details,
-            'read': self.read,
+            'readed': self.readed,
             'manager_id': str(self.manager_id),
             'created_at': self.created_at.strftime('%Y-%m-%d'),
             'house_id': str(self.house_id)
@@ -83,7 +83,7 @@ class Event:
     async def get_user_events(cls, user_id: ObjectId, limit: int = 20, skip: int = 0, read: bool = None):
         filter = {'user_id': user_id}
         if read is not None: filter['read'] = read
-        cursor = MongoDB.db.events.find(filter, skip=skip, limit=limit)
+        cursor = MongoDB.db.events.find(filter, skip=skip, limit=limit, sort=[("created_at", -1)])
         result = []
         async for data in cursor:
             result.append(cls(**data))

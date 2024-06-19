@@ -100,7 +100,7 @@ class Apartment:
         if entrance is not None: filter['entrance'] = entrance
         if floor is not None: filter['floor'] = floor
         if number is not None: filter['number'] = number
-        cursor = MongoDB.db.apartments.find(filter, skip=skip, limit=limit)
+        cursor = MongoDB.db.apartments.find(filter, skip=skip, limit=limit, sort=[("number", -1)])
         result = []
         async for data in cursor:
             result.append(cls(**data))

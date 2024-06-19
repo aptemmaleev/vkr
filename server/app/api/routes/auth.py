@@ -17,6 +17,7 @@ from app.settings import SETTINGS
 from app.utils.security import verify_password, hash_password
 from app.objects.user import User
 from app.objects.session import Session
+from app.api.schemas import RegisterData
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 router = APIRouter()
@@ -62,18 +63,33 @@ async def read_users_me(
 ):
     return JSONResponse(status_code=200, content=current_user.to_json())
 
+@router.get("/users/me/update")
+async def read_users_me(
+    current_user: Annotated[User, Depends(get_current_user)],
+    password: str = None,
+    name: str = None,
+    surname: str = None
+):
+    if (password != None): current_user.password = hash_password(password)
+    if (name != None): current_user.name = name
+    if (surname != None): current_user.surname = surname
+    await current_user.save()
+    return JSONResponse(status_code=200, content={"message": "User updated"})
+
 @router.post("/register")
-async def register(email: str, password: str, name: str, surname: str):    
-    if (await User.get_by_email(email)) is not None:
-        return JSONResponse(status_code=400, content={"message": "User already exists"})
+async def register(data: RegisterData):    
+    if (await User.get_by_email(data.email)) is not None:
+        return JSONResponse(status_code=200, content={"error": "Пользователь с таким адресом электронной почты уже существует"})
+    print(data)
     user = User(
-        name=name,
-        surname=surname,
-        email=email,
-        password=hash_password(password),
+        name=data.name,
+        surname=data.surname,
+        email=data.email,
+        password=hash_password(data.password),
         created_at=datetime.now(),
         updated_at=datetime.now()
     )
+    print(user.to_json())
     await user.save()
     return JSONResponse(status_code=200, content={"message": "User created"})
 

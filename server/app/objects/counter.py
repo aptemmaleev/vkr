@@ -5,34 +5,53 @@ from datetime import datetime
 from app.utils.mongo import MongoDB
 
 class Reading:
-    date: datetime
+    _id: ObjectId
+    user_id: ObjectId
     value: float
-    writer: ObjectId
+    created_at: datetime
+    counter_id: ObjectId
+    year: int
+    month: int
 
     def __init__(
         self, 
-        date: datetime,
+        user_id: ObjectId,
         value: float,
-        writer: ObjectId
+        created_at: datetime = datetime.now(),
+        counter_id: ObjectId | None = None,
+        year: int = datetime.now().year,
+        month: int = datetime.now().month,
+        _id: ObjectId = None
     ) -> None:
-        self.date = date
+        self._id = ObjectId(_id)
         self.value = value
-        self.writer = writer
+        self.user_id = ObjectId(user_id)
+        self.created_at = created_at
+        self.counter_id = ObjectId(counter_id)
+        self.year = year
+        self.month = month
 
     def __dict__(self):
         return {
-            'date': self.date,
+            'user_id': self.user_id,
             'value': self.value,
-            'writer': self.writer
+            'created_at': self.created_at,
+            'counter_id': self.counter_id,
+            'year': self.year,
+            'month': self.month
         }
     
     def to_json(self):
         return {
-            'date': self.date.strftime("%Y-%m-%d"),
+            'id': str(self._id),
             'value': self.value,
-            'writer': str(self.writer)
+            'user_id': str(self.user_id),
+            'created_at': self.created_at.strftime('%Y-%m-%d'),
+            'counter_id': str(self.counter_id),
+            'year': self.year,
+            'month': self.month
         }
-
+    
 class Counter:
     _id: ObjectId
     apartment_id: ObjectId
@@ -40,7 +59,6 @@ class Counter:
     name: str
     type: str
     serial_number: str
-    readings: List[Reading]
 
     def __init__(
         self, 
@@ -49,7 +67,6 @@ class Counter:
         name: str,
         type: str,
         serial_number: str,
-        readings: List[dict] = [],
         _id: ObjectId = None
     ) -> None:
         self._id = _id
@@ -58,7 +75,6 @@ class Counter:
         self.name = name
         self.type = type
         self.serial_number = serial_number
-        self.readings = [Reading(**reading) for reading in readings]
 
     def __dict__(self):
         return {
@@ -67,7 +83,6 @@ class Counter:
             'name': self.name,
             'type': self.type,
             'serial_number': self.serial_number,
-            'readings': [reading.__dict__() for reading in self.readings]
         }
     
     def to_json(self):
@@ -78,7 +93,6 @@ class Counter:
             'name': self.name,
             'type': self.type,
             'serial_number': self.serial_number
-            # 'readings': self.readings
         }
     
     async def save(self):
@@ -101,9 +115,12 @@ class Counter:
     @classmethod
     async def get_list(
         cls,
-        apartment_id: ObjectId
+        apartment_id: ObjectId,
+        type: str = None
     ) -> List:
-        cursor = MongoDB.db.counters.find({'apartment_id': apartment_id})
+        filter = {'apartment_id': apartment_id}
+        if type is not None: filter['type'] = type
+        cursor = MongoDB.db.counters.find(filter)
         result = []
         async for data in cursor:
             result.append(cls(**data))

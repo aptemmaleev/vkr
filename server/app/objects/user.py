@@ -24,7 +24,7 @@ class User:
             updated_at: datetime = datetime.now(),
             _id: ObjectId = None
         ) -> None:
-        self._id = _id
+        self._id = ObjectId(_id) if _id is not None else None
         self.name = name
         self.surname = surname
         self.role = role

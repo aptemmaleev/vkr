@@ -53,7 +53,7 @@ async def mark_events(
         return JSONResponse(content={"error": "Notification not found"}, status_code=404)
     if event.user_id != current_user._id:
         return JSONResponse(content={"error": "Permission denied"}, status_code=403)
-    event.read = read
+    event.readed = read
     await event.save()
     return JSONResponse(event.to_json(), status_code=200)
 
